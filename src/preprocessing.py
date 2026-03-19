@@ -36,5 +36,11 @@ def load_and_clean_data(n_samples = 50000, random_state = 42, save = True):
     print('Loading Amazon Polarity dataset')
     dataset = load_dataset('amazon_polarity', split = 'test')
 
-    df = pd.DataFrame(dataset).sample(
-        n = n_samples, random_state = random_state).reset_index(drop = True)
+    # convert to df
+    df = (pd.DataFrame(dataset).sample(
+        n = n_samples, random_state = random_state).reset_index(drop = True))
+    
+    # rename columns directly into original data
+    df.rename(columns = {'content': 'text', 'label': 'rating'}, inplace = True)
+    
+
