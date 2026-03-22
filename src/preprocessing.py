@@ -260,13 +260,12 @@ if __name__ == "__main__":
     for idx in top_indices:
         print(f"  {feature_names[idx]:15s} TF-IDF={row[idx]:.4f}")
 
-    # ------------------------------------------------------------------
-    # 6. REVIEW LENGTH & SENTIMENT EDA
-    # ------------------------------------------------------------------
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    # REVIEW LENGTH & SENTIMENT EDA
 
-    axes[0].hist(df["n_tokens"], bins=50, edgecolor="black", alpha=0.7)
+    fig, axes = plt.subplots(1, 3, figsize = (16, 5))
+
+    axes[0].hist(df["n_tokens"], bins=50, edgecolor="black", alpha = 0.7)
     axes[0].set_xlabel("Number of Tokens")
     axes[0].set_ylabel("Count")
     axes[0].set_title("Review Length Distribution")
@@ -291,7 +290,6 @@ if __name__ == "__main__":
     axes[2].set_xticklabels(["Negative", "Positive"], rotation=0)
 
     plt.tight_layout()
-    plt.savefig("figures/review_eda.png", dpi=150, bbox_inches="tight")
     plt.show()
 
     for label, name in [(0, "Negative"), (1, "Positive")]:
@@ -299,9 +297,7 @@ if __name__ == "__main__":
         print(f"{name}: avg {subset['n_tokens'].mean():.1f} tokens, "
               f"median {subset['n_tokens'].median():.0f} tokens")
 
-    # ------------------------------------------------------------------
-    # 7. N-GRAM ANALYSIS
-    # ------------------------------------------------------------------
+    # N-GRAM ANALYSIS
     # Single words miss multi-word patterns. "not good" as unigrams
     # looks like it contains "good" (positive). As a bigram it's
     # clearly negative.
