@@ -42,5 +42,14 @@ def load_and_clean_data(n_samples = 50000, random_state = 42, save = True):
     
     # rename columns directly into original data
     df.rename(columns = {'content': 'text', 'label': 'rating'}, inplace = True)
+
+    print(f"Label distribution:\n{df['rating'].value_counts().sort_index().to_string()}")
+
     
 
+
+def main():
+    load_and_clean_data()
+
+if __name__ == '__main__':
+    main()
