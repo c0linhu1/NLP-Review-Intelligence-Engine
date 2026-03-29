@@ -20,24 +20,16 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 import umap
-
-from preprocessing import load_cleaned_data
-
+from preprocessing import load_and_clean_data
 
 # sparse embeddings
 
-def build_tfidf(texts, max_features=5000):
+def build_tfidf(texts, max_features = 5000):
     """
-    Build TF-IDF matrix from a list of texts.
-
-    TF-IDF treats each document as a bag of words — it doesn't understand
-    word order or meaning, just which words appear and how distinctive they
-    are. "cozy" and "comfortable" are completely unrelated in this space.
-
-    max_features caps the vocabulary size. The 5000 most informative words
-    are usually enough — adding more just adds noise from rare words.
+    based off of bag of words - word counts are reweighted based on how informative they 
+    are across corpus
     """
-    vectorizer = TfidfVectorizer(max_features=max_features)
+    vectorizer = TfidfVectorizer(max_features = max_features)
     matrix = vectorizer.fit_transform(texts)
     return vectorizer, matrix
 
@@ -48,7 +40,7 @@ def tfidf_search(query, vectorizer, tfidf_matrix, texts, top_k=5):
 
     Transforms the query into the same TF-IDF space, then finds the
     reviews with the highest cosine similarity. Simple but limited —
-    only matches on exact word overlap.
+    only matches on exact word overlap not similar words like cozy and comfortable
     """
     query_vec = vectorizer.transform([query])
     scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
@@ -56,9 +48,8 @@ def tfidf_search(query, vectorizer, tfidf_matrix, texts, top_k=5):
     return [(texts[i], scores[i]) for i in top_idx]
 
 
-# ============================================================================
-# DENSE EMBEDDINGS (Sentence-Transformers)
-# ============================================================================
+
+# dense embeddings (sentence transformers)
 
 def build_dense_embeddings(texts, model_name="all-MiniLM-L6-v2", batch_size=256,
                            save_path="data/dense_embeddings.npy"):
@@ -83,6 +74,8 @@ def build_dense_embeddings(texts, model_name="all-MiniLM-L6-v2", batch_size=256,
     print(f"Encoding {len(texts):,} texts with {model_name}...")
     model = SentenceTransformer(model_name)
     embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True)
+
+    # float 32 bc FAISS requires float 32 - pytorch default is float 64
     embeddings = np.array(embeddings).astype("float32")
 
     Path(save_path).parent.mkdir(exist_ok=True)
@@ -97,9 +90,7 @@ def get_sentence_model(model_name="all-MiniLM-L6-v2"):
     return SentenceTransformer(model_name)
 
 
-# ============================================================================
-# FAISS INDEX
-# ============================================================================
+# FAISS index
 
 def build_faiss_index(embeddings, save_path="data/faiss_index.bin"):
     """
@@ -148,56 +139,14 @@ def faiss_search(query_text, model, index, texts, top_k=5):
     return [(texts[i], scores[0][j]) for j, i in enumerate(indices[0])]
 
 
-# ============================================================================
-# VISUALIZATION
-# ============================================================================
 
-def plot_embedding_space(embeddings, labels, save_path="figures/embedding_space.png"):
-    """
-    Visualize embeddings in 2D using UMAP.
-
-    UMAP reduces 384 dimensions down to 2 while trying to preserve the
-    structure — reviews that are close in the high-dimensional space should
-    stay close in 2D. Color by sentiment label to see if the embeddings
-    naturally separate positive from negative.
-    """
-    
-    print("Running UMAP (this takes a minute)...")
-    # n_neighbors controls local vs global structure. 15 is a good default.
-    # min_dist controls how tightly points cluster. Lower = tighter clusters.
-    reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
-
-    # use a sample for speed — 5000 points is plenty to see the pattern
-    n_sample = min(5000, len(embeddings))
-    idx = np.random.RandomState(42).choice(len(embeddings), n_sample, replace=False)
-    sample_emb = embeddings[idx]
-    sample_labels = labels[idx]
-
-    reduced = reducer.fit_transform(sample_emb)
-
-    plt.figure(figsize=(10, 8))
-    colors = ["#e74c3c" if l == 0 else "#2ecc71" for l in sample_labels]
-    plt.scatter(reduced[:, 0], reduced[:, 1], c=colors, alpha=0.3, s=5)
-    plt.title("Review Embeddings (UMAP) — Red=Negative, Green=Positive")
-    plt.xlabel("UMAP 1")
-    plt.ylabel("UMAP 2")
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.show()
-    print(f"Saved to {save_path}")
-
-
-# ============================================================================
-# MAIN
-# ============================================================================
 
 if __name__ == "__main__":
 
     Path("figures").mkdir(exist_ok=True)
 
     # load cleaned data
-    df = load_cleaned_data()
-    if df is None:
-        raise RuntimeError("Run preprocessing.py first")
+    df = load_and_clean_data()
 
     texts = df["clean_text"].tolist()
 
@@ -251,12 +200,3 @@ if __name__ == "__main__":
         for text, score in dense_results:
             print(f"    [{score:.3f}] {text[:100]}...")
 
-    # ------------------------------------------------------------------
-    # 3. VISUALIZE EMBEDDING SPACE
-    # ------------------------------------------------------------------
-
-    print("\n\n=== EMBEDDING VISUALIZATION ===")
-    plot_embedding_space(embeddings, df["rating"].values)
-
-    print("\n\nDone. Embeddings and FAISS index saved to data/")
-    print("Next: run classifier.py")
