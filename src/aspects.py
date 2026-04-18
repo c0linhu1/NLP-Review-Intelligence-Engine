@@ -136,10 +136,8 @@ def extract_aspects_from_doc(doc):
     return aspects
 
 
-# ============================================================================
-# AGGREGATION
-# ============================================================================
 
+# aggregation
 def aggregate_aspects(df):
     """
     Aggregate aspect-level sentiment across all reviews.
@@ -172,9 +170,7 @@ def aggregate_aspects(df):
     return agg_df
 
 
-# ============================================================================
-# VISUALIZATION
-# ============================================================================
+# visualization
 
 def plot_top_aspects(agg_df, top_n=20, save_path="figures/aspect_sentiment.png"):
     """Plot top aspects by frequency with sentiment breakdown."""
@@ -200,19 +196,12 @@ def plot_top_aspects(agg_df, top_n=20, save_path="figures/aspect_sentiment.png")
     plt.show()
 
 
-# ============================================================================
-# MAIN
-# ============================================================================
 
 if __name__ == "__main__":
 
     df = load_and_clean_data()
     if df is None:
         raise RuntimeError("Run preprocessing.py first")
-
-    # ------------------------------------------------------------------
-    # 1. EXTRACT ASPECTS
-    # ------------------------------------------------------------------
 
     nlp = spacy.load("en_core_web_sm")
 
@@ -231,18 +220,13 @@ if __name__ == "__main__":
             print(f"  → ({a}, {o}, {s}, polarity={p:.2f})")
         print()
 
-    # ------------------------------------------------------------------
-    # 2. EXTRACT FROM FULL CORPUS
-    # ------------------------------------------------------------------
 
+    # extract from full corpus
     df = extract_aspects_corpus(df)
 
     # save for use by other scripts
     df.to_parquet("data/reviews_with_aspects.parquet")
 
-    # ------------------------------------------------------------------
-    # 3. AGGREGATE & VISUALIZE
-    # ------------------------------------------------------------------
 
     agg_df = aggregate_aspects(df)
 
@@ -263,6 +247,3 @@ if __name__ == "__main__":
     most_neg = frequent.nsmallest(10, "pct_positive")
     for _, row in most_neg.iterrows():
         print(f"  {row['aspect']:20s} {row['pct_positive']:.0f}% positive ({row['total']} mentions)")
-
-    print("\n\nDone. Aspects saved to data/reviews_with_aspects.parquet")
-    print("Next: run topics.py")
